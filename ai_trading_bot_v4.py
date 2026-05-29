@@ -17,7 +17,7 @@ from groq import Groq
 GUI_FILTER_FILE = "gui_filters.json"
 
 _GUI_FILTER_DEFAULTS = {
-    "killzone":       True,
+    "killzone":       False,
     "calendar":       True,
     "spread":         True,
     "volatility":     True,
