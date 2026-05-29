@@ -7,3 +7,4 @@ requests
 feedparser
 groq
 gunicorn
+pandas-ta
