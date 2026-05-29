@@ -21,7 +21,7 @@ DATABASE        = "ai_trading.db"
 SIGNAL_FILE     = "signal_history.json"
 OPEN_SIGNALS_FILE = "open_signals.json"
 PERFORMANCE_FILE  = "performance_data.json"
-BOT_SCRIPT      = "ai_trading_bot_v3.py"   # ← updated to match your filename
+BOT_SCRIPT      = "ai_trading_bot_v4.py"   # ← updated to match your filename
 # ──────────────────────────────────────────────────────────────────────────────
 
 app  = Flask(__name__, static_folder=".", static_url_path="/static")
