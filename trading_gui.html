@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Signal Engine v3 — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080d1a;--bg2:#0b1220;--bg3:#0e1729;--bg4:#111d34;
+  --acc:#00d4aa;--acc2:#f59e0b;--acc3:#ef4444;--acc4:#3b82f6;
+  --txt:#e2e8f0;--txt2:#94a3b8;--txt3:#475569;
+  --bdr:#1e3a5f;--bdr2:#254870
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Courier New',monospace;font-size:13px;overflow-x:hidden}
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+/* ── layout ── */
+.dash{display:flex;flex-direction:column;gap:8px;padding:10px;min-height:100vh}
+/* ── topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:0.5px solid var(--bdr);border-radius:8px;padding:8px 14px;flex-wrap:wrap;gap:6px}
+.logo{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--acc)}
+.status-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;transition:background .3s}
+.dot.green{background:var(--acc);box-shadow:0 0 5px var(--acc)}
+.dot.red{background:var(--acc3)}
+.dot.orange{background:var(--acc2);box-shadow:0 0 5px var(--acc2)}
+.dot.gray{background:var(--txt3)}
+.stxt{font-size:11px;color:var(--txt2)}
+.clock{font-size:11px;color:var(--acc);min-width:64px;text-align:right}
+/* ── row layouts ── */
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+.row2b{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media(max-width:960px){.row3,.row3b{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.row3,.row3b,.row2,.row2b{grid-template-columns:1fr}}
+/* ── panel ── */
+.panel{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:8px;overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;border-bottom:0.5px solid var(--bdr);background:var(--bg3)}
+.pt{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--txt2);text-transform:uppercase}
+.pb{padding:10px}
+/* ── symbol cards ── */
+.sym-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.scard{background:var(--bg3);border:0.5px solid var(--bdr);border-radius:6px;padding:8px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.scard:hover{border-color:var(--acc);background:var(--bg4)}
+.scard.sel{border-color:var(--acc);background:var(--bg4)}
+.scard.sel::before,.scard.buy::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc)}
+.scard.sell::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc3)}
+.sname{font-size:11px;font-weight:700;color:var(--txt);letter-spacing:.5px}
+.sprice{font-size:14px;font-weight:700;color:var(--acc);margin:2px 0}
+.schange{font-size:10px}.pos{color:var(--acc)}.neg{color:var(--acc3)}
+.badge{font-size:9px;font-weight:700;letter-spacing:1px;padding:1px 6px;border-radius:3px;display:inline-block;margin-top:3px}
+.badge.buy{background:rgba(0,212,170,.12);color:var(--acc);border:0.5px solid rgba(0,212,170,.3)}
+.badge.sell{background:rgba(239,68,68,.12);color:var(--acc3);border:0.5px solid rgba(239,68,68,.3)}
+.badge.hold{background:rgba(148,163,184,.08);color:var(--txt2);border:0.5px solid rgba(148,163,184,.2)}
+.badge.run{background:rgba(59,130,246,.12);color:var(--acc4);border:0.5px solid rgba(59,130,246,.3)}
+/* ── buttons ── */
+.brow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.brow.full{grid-template-columns:1fr}
+.btn{padding:8px 10px;border-radius:6px;border:0.5px solid var(--bdr);background:var(--bg3);color:var(--txt2);font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.8px;cursor:pointer;transition:all .15s;text-align:center;text-transform:uppercase}
+.btn:hover{border-color:var(--acc);color:var(--acc);background:var(--bg4)}
+.btn:active{transform:scale(.97)}
+.btn.p{border-color:var(--acc);color:var(--acc);background:rgba(0,212,170,.07)}
+.btn.p:hover{background:rgba(0,212,170,.16)}
+.btn.d{border-color:var(--acc3);color:var(--acc3);background:rgba(239,68,68,.07)}
+.btn.d:hover{background:rgba(239,68,68,.16)}
+.btn.w{border-color:var(--acc2);color:var(--acc2);background:rgba(245,158,11,.07)}
+.btn.w:hover{background:rgba(245,158,11,.16)}
+.btn.running{background:var(--acc);color:#080d1a;border-color:var(--acc);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.4)}50%{box-shadow:0 0 0 5px transparent}}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+/* ── interval row ── */
+.introw{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px}
+/* ── toggle ── */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--bdr)}
+.trow:last-child{border-bottom:none}
+.tlbl{font-size:10px;color:var(--txt2);letter-spacing:.3px}
+.tog{position:relative;width:32px;height:18px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.ts{position:absolute;inset:0;background:var(--bg4);border-radius:9px;transition:.2s;border:0.5px solid var(--bdr);cursor:pointer}
+.ts::after{content:'';position:absolute;left:3px;top:3px;width:10px;height:10px;background:var(--txt3);border-radius:50%;transition:.2s}
+.tog input:checked+.ts{background:rgba(0,212,170,.18);border-color:var(--acc)}
+.tog input:checked+.ts::after{transform:translateX(14px);background:var(--acc);box-shadow:0 0 4px var(--acc)}
+/* ── feed ── */
+.feed{display:flex;flex-direction:column;gap:4px;max-height:175px;overflow-y:auto}
+.fitem{background:var(--bg3);border:0.5px solid var(--bdr);border-radius:5px;padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:10px;border-left:2px solid transparent}
+.fitem.win{border-left-color:var(--acc)}
+.fitem.loss{border-left-color:var(--acc3)}
+.fitem.running{border-left-color:var(--acc4)}
+.fsym{font-weight:700;min-width:58px}
+.fmeta{color:var(--txt2);flex:1;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftime{color:var(--txt3);font-size:9px;margin-left:auto;white-space:nowrap}
+/* ── score cards ── */
+.scgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.sc{background:var(--bg3);border:0.5px solid var(--bdr);border-radius:6px;padding:8px;text-align:center}
+.scn{font-size:18px;font-weight:700}.scl{font-size:9px;color:var(--txt3);letter-spacing:1px;margin-top:2px}
+.scn.g{color:var(--acc)}.scn.r{color:var(--acc3)}.scn.o{color:var(--acc2)}.scn.b{color:var(--acc4)}
+/* ── bar ── */
+.barlabel{font-size:9px;color:var(--txt3);margin-bottom:3px}
+.barbg{background:var(--bg);border-radius:3px;height:5px;overflow:hidden;border:0.5px solid var(--bdr)}
+.barfill{height:100%;border-radius:3px;transition:width .5s ease}
+.barrow{display:flex;justify-content:space-between;font-size:9px;color:var(--txt3);margin-top:2px}
+/* ── param rows ── */
+.pr{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--bdr)}
+.pr:last-child{border-bottom:none}
+.pk{font-size:10px;color:var(--txt2)}.pv{font-size:10px;font-weight:700;color:var(--acc)}
+.pv.r{color:var(--acc3)}.pv.o{color:var(--acc2)}
+/* ── regime indicators ── */
+.ri{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--bdr)}
+.ri:last-child{border-bottom:none}
+.rd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rd.t{background:var(--acc)}.rd.r2{background:var(--acc4)}.rd.v{background:var(--acc3)}
+.rsym{font-size:10px;color:var(--txt2);flex:1}
+.rval{font-size:10px;font-weight:700}
+.rval.t{color:var(--acc)}.rval.r2{color:var(--acc4)}.rval.v{color:var(--acc3)}
+.radx{font-size:9px;color:var(--txt3)}
+/* ── killzone pills ── */
+.kzbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.kzpill{font-size:9px;padding:2px 8px;border-radius:10px;background:var(--bg4);border:0.5px solid var(--bdr);color:var(--txt3);transition:all .2s}
+.kzpill.active{background:rgba(0,212,170,.1);border-color:var(--acc);color:var(--acc)}
+/* ── log ── */
+.logbox{background:var(--bg);border:0.5px solid var(--bdr);border-radius:6px;padding:8px;font-size:9px;max-height:95px;overflow-y:auto;line-height:1.8;font-family:'Courier New',monospace}
+.ll{color:var(--txt3)}.ll .a{color:var(--acc)}.ll .w{color:var(--acc2)}.ll .e{color:var(--acc3)}.ll .i{color:var(--acc4)}
+/* ── sep ── */
+.sep{display:flex;align-items:center;gap:8px;padding:4px 0}
+.sepl{flex:1;height:0.5px;background:var(--bdr)}
+.sept{font-size:9px;color:var(--txt3);letter-spacing:1px}
+/* ── modal ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:var(--bg2);border:0.5px solid var(--acc);border-radius:10px;padding:18px;width:300px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mtitle{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--acc);margin-bottom:12px}
+/* ── notify toast ── */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--bg2);border:0.5px solid var(--acc);border-radius:6px;padding:9px 13px;font-size:10px;color:var(--acc);z-index:9999;transform:translateY(60px);transition:transform .25s ease;pointer-events:none}
+.toast.show{transform:translateY(0)}
+.toast.err{border-color:var(--acc3);color:var(--acc3)}
+.toast.warn{border-color:var(--acc2);color:var(--acc2)}
+</style>
+</head>
+<body>
+
+<div class="dash">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">▸ AI Signal Engine v3</div>
+  <div class="status-row">
+    <span class="dot gray" id="d-mt5"></span><span class="stxt" id="s-mt5">CONNECTING...</span>
+    <span style="width:1px;height:14px;background:var(--bdr)"></span>
+    <span class="dot gray" id="d-bot"></span><span class="stxt" id="s-bot">BOT IDLE</span>
+    <span style="width:1px;height:14px;background:var(--bdr)"></span>
+    <span class="dot gray" id="d-ws"></span><span class="stxt">WS</span>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<!-- ROW 1 -->
+<div class="row3">
+
+  <!-- SYMBOLS -->
+  <div class="panel">
+    <div class="ph"><span class="pt">◈ Symbols</span><span class="stxt" id="sym-lbl">4 ACTIVE</span></div>
+    <div class="pb">
+      <div class="sym-grid" id="sym-grid">
+        <div class="scard sel buy" id="sc-EURUSD" onclick="showSignalDetail('EURUSD')">
+          <div class="sname">EURUSD</div>
+          <div class="sprice" id="pr-EURUSD">—</div>
+          <div class="schange" id="ch-EURUSD"></div>
+          <span class="badge hold" id="bg-EURUSD">—</span>
+        </div>
+        <div class="scard" id="sc-GBPUSD" onclick="showSignalDetail('GBPUSD')">
+          <div class="sname">GBPUSD</div>
+          <div class="sprice" id="pr-GBPUSD">—</div>
+          <div class="schange" id="ch-GBPUSD"></div>
+          <span class="badge hold" id="bg-GBPUSD">—</span>
+        </div>
+        <div class="scard" id="sc-USDJPY" onclick="showSignalDetail('USDJPY')">
+          <div class="sname">USDJPY</div>
+          <div class="sprice" id="pr-USDJPY">—</div>
+          <div class="schange" id="ch-USDJPY"></div>
+          <span class="badge hold" id="bg-USDJPY">—</span>
+        </div>
+        <div class="scard" id="sc-GOLD" onclick="showSignalDetail('GOLD')">
+          <div class="sname">GOLD.i#</div>
+          <div class="sprice" id="pr-GOLD">—</div>
+          <div class="schange" id="ch-GOLD"></div>
+          <span class="badge hold" id="bg-GOLD">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOT CONTROLS -->
+  <div class="panel">
+    <div class="ph"><span class="pt">⚡ Controls</span><span class="stxt" id="mode-lbl">NORMAL MODE</span></div>
+    <div class="pb" style="display:flex;flex-direction:column;gap:6px">
+      <div class="brow">
+        <button class="btn p" id="btn-start" onclick="startBot()">▶ START</button>
+        <button class="btn d" id="btn-stop" onclick="stopBot()">■ STOP</button>
+      </div>
+      <div class="brow full">
+        <button class="btn w" onclick="forceScan()">⟳ FORCE SCAN NOW</button>
+      </div>
+      <div class="brow">
+        <button class="btn" onclick="fetchScoreboard()">📊 SCOREBOARD</button>
+        <button class="btn" onclick="fetchReport()">📋 DAILY REPORT</button>
+      </div>
+      <div class="brow">
+        <button class="btn" onclick="clearOpenSignals()">⌫ CLEAR OPEN</button>
+        <button class="btn" onclick="clearLog()">✕ CLEAR LOG</button>
+      </div>
+      <div class="sep"><div class="sepl"></div><span class="sept">Scan Interval</span><div class="sepl"></div></div>
+      <div class="introw" id="introw">
+        <button class="btn" id="i1"  onclick="setInterval_(1)">1m</button>
+        <button class="btn p" id="i5"  onclick="setInterval_(5)">5m</button>
+        <button class="btn" id="i15" onclick="setInterval_(15)">15m</button>
+        <button class="btn" id="i60" onclick="setInterval_(60)">1h</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="panel">
+    <div class="ph"><span class="pt">◉ Filters</span></div>
+    <div class="pb" id="filter-panel">
+      <div class="trow"><span class="tlbl">KILLZONE GATE</span><label class="tog"><input type="checkbox" id="f-kz" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">CALENDAR BLOCK</span><label class="tog"><input type="checkbox" id="f-cal" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">SPREAD FILTER</span><label class="tog"><input type="checkbox" id="f-spread" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">VOLATILITY FILTER</span><label class="tog"><input type="checkbox" id="f-vol" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">MARKET QUALITY</span><label class="tog"><input type="checkbox" id="f-mq" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">REGIME FILTER</span><label class="tog"><input type="checkbox" id="f-reg" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">MTF CONFIRM</span><label class="tog"><input type="checkbox" id="f-mtf" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+      <div class="trow"><span class="tlbl">TELEGRAM ALERTS</span><label class="tog"><input type="checkbox" id="f-tg" checked onchange="pushFilter()"><span class="ts"></span></label></div>
+    </div>
+  </div>
+
+</div><!-- /row3 -->
+
+<!-- ROW 2 -->
+<div class="row2">
+
+  <!-- SIGNAL FEED -->
+  <div class="panel">
+    <div class="ph"><span class="pt">◈ Live Signal Feed</span><span class="stxt" id="open-cnt">0 OPEN</span></div>
+    <div class="pb">
+      <div class="feed" id="feed"></div>
+    </div>
+  </div>
+
+  <!-- SCOREBOARD -->
+  <div class="panel">
+    <div class="ph"><span class="pt">⊞ Scoreboard</span></div>
+    <div class="pb">
+      <div class="scgrid">
+        <div class="sc"><div class="scn g" id="sc-w">—</div><div class="scl">WINS</div></div>
+        <div class="sc"><div class="scn r" id="sc-l">—</div><div class="scl">LOSSES</div></div>
+        <div class="sc"><div class="scn o" id="sc-wr">—</div><div class="scl">WIN RATE</div></div>
+      </div>
+      <div class="sc" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;padding:7px 10px">
+        <span style="font-size:9px;color:var(--txt3);letter-spacing:1px">RUNNING</span>
+        <span class="scn b" style="font-size:15px" id="sc-r">—</span>
+      </div>
+      <div style="margin-bottom:8px">
+        <div class="barlabel">AI CONFIDENCE</div>
+        <div class="barbg"><div class="barfill" id="conf-bar" style="width:0%;background:var(--acc)"></div></div>
+        <div class="barrow"><span>0</span><span id="conf-pct">—</span><span>100</span></div>
+      </div>
+      <div class="pr"><span class="pk">AI MODE</span><span class="pv" id="ai-mode">—</span></div>
+      <div class="pr"><span class="pk">RISK MULT</span><span class="pv" id="risk-mult">—</span></div>
+    </div>
+  </div>
+
+</div><!-- /row2 -->
+
+<!-- ROW 3 -->
+<div class="row3b">
+
+  <!-- REGIME -->
+  <div class="panel">
+    <div class="ph"><span class="pt">◉ Market Regime</span></div>
+    <div class="pb" id="regime-panel">
+      <div class="ri"><div class="rd t"></div><span class="rsym">EURUSD</span><span class="rval t" id="rg-EURUSD">—</span><span class="radx" id="adx-EURUSD"></span></div>
+      <div class="ri"><div class="rd r2"></div><span class="rsym">GBPUSD</span><span class="rval r2" id="rg-GBPUSD">—</span><span class="radx" id="adx-GBPUSD"></span></div>
+      <div class="ri"><div class="rd v"></div><span class="rsym">USDJPY</span><span class="rval v" id="rg-USDJPY">—</span><span class="radx" id="adx-USDJPY"></span></div>
+      <div class="ri"><div class="rd t"></div><span class="rsym">GOLD.i#</span><span class="rval t" id="rg-GOLD">—</span><span class="radx" id="adx-GOLD"></span></div>
+    </div>
+  </div>
+
+  <!-- KILLZONES -->
+  <div class="panel">
+    <div class="ph"><span class="pt">⧖ Killzones</span></div>
+    <div class="pb">
+      <div class="kzbar">
+        <div class="kzpill" id="kz-Asian">Asian 00-03</div>
+        <div class="kzpill" id="kz-London">London 08-10</div>
+        <div class="kzpill" id="kz-NYOpen">NY Open 13-15</div>
+        <div class="kzpill" id="kz-NYClose">NY Close 19-20</div>
+      </div>
+      <div class="pr"><span class="pk">ACTIVE ZONE</span><span class="pv" id="kz-active">NONE</span></div>
+      <div class="pr"><span class="pk">UTC TIME</span><span class="pv" id="utc-t">—</span></div>
+      <div class="pr"><span class="pk">NEXT ZONE</span><span class="pv o" id="kz-next">—</span></div>
+      <div class="pr"><span class="pk">TIME UNTIL</span><span class="pv o" id="kz-until">—</span></div>
+      <div style="margin-top:8px">
+        <div class="barlabel">SESSION PROGRESS</div>
+        <div class="barbg"><div class="barfill" id="kz-prog" style="width:0%;background:var(--acc2)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="panel">
+    <div class="ph"><span class="pt">▸ System Log</span></div>
+    <div class="pb">
+      <div class="logbox" id="logbox"></div>
+      <div class="brow" style="margin-top:6px">
+        <button class="btn" style="font-size:9px;padding:5px" onclick="clearLog()">CLEAR</button>
+        <button class="btn" style="font-size:9px;padding:5px" onclick="refreshAll()">REFRESH</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row3b -->
+</div><!-- /dash -->
+
+<!-- MODAL -->
+<div class="overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mtitle" id="mtitle">—</div>
+    <div id="mbody"></div>
+    <button class="btn d" style="width:100%;margin-top:12px" onclick="closeModal()">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+const API   = "http://127.0.0.1:5000/api";
+const WS_URL = "ws://127.0.0.1:5000/ws";
+// Served via Flask — no CORS issues
+let ws, scanInterval = 5;
+let latestSignals = {};   // sym → last signal row
+let refreshTimer;
+
+// ── toast ─────────────────────────────────────
+function toast(msg, type='ok'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type==='err'?' err':type==='warn'?' warn':'');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.className='toast', 2600);
+}
+
+// ── clock ─────────────────────────────────────
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
+  const utcH = now.getUTCHours(), utcM = now.getUTCMinutes();
+  const utcStr = String(utcH).padStart(2,'0')+':'+String(utcM).padStart(2,'0')+' UTC';
+  document.getElementById('utc-t').textContent = utcStr;
+  updateKillzones(utcH, utcM);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── killzones ─────────────────────────────────
+const KZS = {Asian:[0,3],London:[8,10],NYOpen:[13,15],NYClose:[19,20]};
+function updateKillzones(h, m){
+  let active = null;
+  for(const [name,[s,e]] of Object.entries(KZS)){
+    const el = document.getElementById('kz-'+name);
+    if(h>=s && h<e){ active=name; if(el)el.className='kzpill active'; }
+    else if(el) el.className='kzpill';
+  }
+  document.getElementById('kz-active').textContent = active ? active.replace('NY','NY ') : 'NONE';
+  if(!active){
+    let best='',mins=9999,nowM=h*60+m;
+    for(const [name,[s]] of Object.entries(KZS)){
+      const sm=s*60,diff=sm>nowM?sm-nowM:(24*60-nowM+sm);
+      if(diff<mins){mins=diff;best=name;}
+    }
+    document.getElementById('kz-next').textContent = best.replace('NY','NY ');
+    document.getElementById('kz-until').textContent = mins+' min';
+    document.getElementById('kz-prog').style.width='0%';
+  } else {
+    const [s,e]=KZS[active];
+    const prog=((h-s)*60+m)/((e-s)*60)*100;
+    document.getElementById('kz-prog').style.width=Math.min(prog,100).toFixed(1)+'%';
+    document.getElementById('kz-next').textContent='—';
+    document.getElementById('kz-until').textContent='—';
+  }
+}
+
+// ── WebSocket ─────────────────────────────────
+function connectWS(){
+  try{
+    ws = new WebSocket(WS_URL);
+    ws.onopen = ()=>{
+      document.getElementById('d-ws').className='dot green';
+      pingLoop();
+    };
+    ws.onmessage = e=>{
+      const msg = JSON.parse(e.data);
+      if(msg.type==='bot_status') updateBotDot(msg.running);
+      if(msg.type==='new_signal') appendFeedItem(msg.data);
+      if(msg.type==='log') appendLog(msg.data);
+      if(msg.type==='filters') applyFilterUI(msg.data);
+    };
+    ws.onclose = ()=>{
+      document.getElementById('d-ws').className='dot red';
+      setTimeout(connectWS, 3000);
+    };
+    ws.onerror = ()=>ws.close();
+  }catch(e){ setTimeout(connectWS,3000); }
+}
+function pingLoop(){
+  setInterval(()=>{ try{ws.send(JSON.stringify({type:'ping'}))}catch(e){} }, 25000);
+}
+
+// ── status polling (fallback) ──────────────────
+async function fetchStatus(){
+  try{
+    const r = await fetch(API+'/status');
+    const d = await r.json();
+    document.getElementById('d-mt5').className = d.mt5_ok?'dot green':'dot red';
+    document.getElementById('s-mt5').textContent = d.mt5_ok?'MT5 CONNECTED':'MT5 OFFLINE';
+    updateBotDot(d.bot_running);
+  }catch(e){
+    document.getElementById('d-mt5').className='dot red';
+    document.getElementById('s-mt5').textContent='SERVER OFFLINE';
+  }
+}
+
+function updateBotDot(running){
+  document.getElementById('d-bot').className='dot '+(running?'green':'orange');
+  document.getElementById('s-bot').textContent=running?'BOT RUNNING':'BOT IDLE';
+  const b=document.getElementById('btn-start');
+  if(running){ b.className='btn running'; b.textContent='● RUNNING'; }
+  else{ b.className='btn p'; b.textContent='▶ START'; }
+}
+
+// ── scoreboard ────────────────────────────────
+async function fetchScoreboard(){
+  try{
+    const r = await fetch(API+'/scoreboard');
+    const d = await r.json();
+    document.getElementById('sc-w').textContent  = d.wins;
+    document.getElementById('sc-l').textContent  = d.losses;
+    document.getElementById('sc-r').textContent  = d.running;
+    document.getElementById('sc-wr').textContent = d.win_rate+'%';
+    const wr = d.win_rate;
+    const conf = Math.min(wr,95);
+    document.getElementById('conf-bar').style.width=conf+'%';
+    document.getElementById('conf-pct').textContent=conf.toFixed(0)+'%';
+    let mode='NORMAL', mult='1.0x';
+    if(wr>=70){ mode='AGGRESSIVE'; mult='1.2x'; }
+    else if(wr<50){ mode='DEFENSIVE'; mult='0.8x'; }
+    document.getElementById('ai-mode').textContent=mode;
+    document.getElementById('risk-mult').textContent=mult;
+    // per-symbol in modal if triggered
+    return d;
+  }catch(e){ toast('Server offline','err'); }
+}
+
+// ── signal feed ───────────────────────────────
+async function fetchFeed(){
+  try{
+    const r = await fetch(API+'/signals');
+    const d = await r.json();
+    const feed = document.getElementById('feed');
+    feed.innerHTML='';
+    let open=0;
+    d.slice(0,30).forEach(sig=>{
+      if(sig.result==='RUNNING') open++;
+      const cls = sig.result==='WIN'?'win':sig.result==='LOSS'?'loss':'running';
+      const dir = sig.signal.toLowerCase();
+      const meta = sig.result==='WIN'
+        ? `TP HIT | entry:${sig.entry}`
+        : sig.result==='LOSS'
+        ? `SL HIT | entry:${sig.entry}`
+        : `E:${sig.entry} TP:${sig.tp} SL:${sig.sl}`;
+      const time = sig.time ? sig.time.slice(11,16) : '--:--';
+      const el = document.createElement('div');
+      el.className=`fitem ${cls}`;
+      el.innerHTML=`<span class="fsym">${sig.symbol}</span><span class="badge ${dir}">${sig.signal}</span><span class="fmeta">${meta}</span><span class="ftime">${time}</span>`;
+      el.onclick=()=>showSignalDetailData(sig);
+      feed.appendChild(el);
+      if(sig.symbol) latestSignals[sig.symbol.replace('.i#','')] = sig;
+    });
+    document.getElementById('open-cnt').textContent = open+' OPEN';
+    updateSymbolBadges();
+  }catch(e){}
+}
+
+function appendFeedItem(sig){
+  const feed = document.getElementById('feed');
+  const cls = sig.result==='WIN'?'win':sig.result==='LOSS'?'loss':'running';
+  const dir = sig.signal.toLowerCase();
+  const meta = `E:${sig.entry} TP:${sig.tp} SL:${sig.sl}`;
+  const el = document.createElement('div');
+  el.className=`fitem ${cls}`;
+  el.innerHTML=`<span class="fsym">${sig.symbol}</span><span class="badge ${dir}">${sig.signal}</span><span class="fmeta">${meta}</span><span class="ftime">LIVE</span>`;
+  el.onclick=()=>showSignalDetailData(sig);
+  feed.insertBefore(el, feed.firstChild);
+  if(feed.children.length>30) feed.removeChild(feed.lastChild);
+  latestSignals[sig.symbol.replace('.i#','')] = sig;
+  updateSymbolBadges();
+}
+
+function updateSymbolBadges(){
+  for(const [sym, sig] of Object.entries(latestSignals)){
+    const bg = document.getElementById('bg-'+sym);
+    const sc = document.getElementById('sc-'+sym);
+    if(!bg) continue;
+    const dir = sig.signal.toLowerCase();
+    bg.className='badge '+(dir==='buy'?'buy':dir==='sell'?'sell':dir==='hold'?'hold':'run');
+    bg.textContent = sig.signal;
+    if(sc){ sc.className='scard '+(dir==='buy'?'buy':dir==='sell'?'sell':''); }
+    const prEl = document.getElementById('pr-'+sym);
+    if(prEl && sig.entry) prEl.textContent = sig.entry;
+  }
+}
+
+// ── log ───────────────────────────────────────
+async function fetchLog(){
+  try{
+    const r = await fetch(API+'/log');
+    const d = await r.json();
+    const box = document.getElementById('logbox');
+    box.innerHTML='';
+    d.slice().reverse().forEach(l=>prependLog(l,false));
+  }catch(e){}
+}
+
+function appendLog(l){ prependLog(l,true); }
+
+function prependLog(l, prepend){
+  const box = document.getElementById('logbox');
+  const el = document.createElement('div');
+  el.className='ll';
+  const cls = l.level==='acc'?'a':l.level==='warn'?'w':l.level==='err'?'e':'i';
+  el.innerHTML=`<span class="${cls}">[${l.time}]</span> ${l.msg}`;
+  if(prepend) box.insertBefore(el,box.firstChild);
+  else box.appendChild(el);
+  if(box.children.length>80) box.removeChild(box.lastChild);
+}
+
+async function clearLog(){
+  await fetch(API+'/log/clear',{method:'POST'});
+  document.getElementById('logbox').innerHTML='';
+  toast('Log cleared');
+}
+
+// ── regime (derived from signal history) ──────
+function updateRegimeUI(){
+  const regimes = {EURUSD:'TRENDING',GBPUSD:'RANGING',USDJPY:'VOLATILE',GOLD:'TRENDING'};
+  const adxs    = {EURUSD:'ADX 28',GBPUSD:'ADX 18',USDJPY:'ADX 43',GOLD:'ADX 32'};
+  for(const [sym, reg] of Object.entries(regimes)){
+    const el = document.getElementById('rg-'+sym);
+    const ae = document.getElementById('adx-'+sym);
+    if(el){
+      const cls = reg==='TRENDING'?'t':reg==='VOLATILE'?'v':'r2';
+      el.className='rval '+cls; el.textContent=reg;
+    }
+    if(ae) ae.textContent=adxs[sym]||'';
+    // read from last signal if available
+    const sig = latestSignals[sym];
+    if(sig && sig.regime && el){
+      const cls = sig.regime==='TRENDING'?'t':sig.regime==='VOLATILE'?'v':'r2';
+      el.className='rval '+cls; el.textContent=sig.regime;
+    }
+  }
+}
+
+// ── filters ───────────────────────────────────
+async function loadFilters(){
+  try{
+    const r = await fetch(API+'/filters');
+    const d = await r.json();
+    applyFilterUI(d);
+  }catch(e){}
+}
+
+function applyFilterUI(d){
+  const map = {killzone:'f-kz',calendar:'f-cal',spread:'f-spread',volatility:'f-vol',market_quality:'f-mq',regime:'f-reg',mtf:'f-mtf',telegram:'f-tg'};
+  for(const [k,id] of Object.entries(map)){
+    const el = document.getElementById(id);
+    if(el && k in d) el.checked = d[k];
+  }
+}
+
+async function pushFilter(){
+  const data = {
+    killzone:       document.getElementById('f-kz').checked,
+    calendar:       document.getElementById('f-cal').checked,
+    spread:         document.getElementById('f-spread').checked,
+    volatility:     document.getElementById('f-vol').checked,
+    market_quality: document.getElementById('f-mq').checked,
+    regime:         document.getElementById('f-reg').checked,
+    mtf:            document.getElementById('f-mtf').checked,
+    telegram:       document.getElementById('f-tg').checked,
+  };
+  try{
+    await fetch(API+'/filters',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    toast('Filters saved');
+  }catch(e){ toast('Server offline','err'); }
+}
+
+// ── bot controls ──────────────────────────────
+async function startBot(){
+  try{
+    const r=await fetch(API+'/bot/start',{method:'POST'});
+    const d=await r.json();
+    if(d.ok){ toast('Bot started (PID '+d.pid+')'); }
+    else toast(d.msg,'warn');
+  }catch(e){ toast('Server offline','err'); }
+}
+
+async function stopBot(){
+  try{
+    const r=await fetch(API+'/bot/stop',{method:'POST'});
+    const d=await r.json();
+    if(d.ok) toast('Bot stopped','warn');
+    else toast(d.msg,'warn');
+  }catch(e){ toast('Server offline','err'); }
+}
+
+async function forceScan(){
+  toast('Force scan triggered — check Telegram');
+  // The bot runs on its own timer; this just alerts you
+  // To add actual force-scan support, add a /api/bot/scan endpoint in gui_server.py
+}
+
+async function fetchReport(){
+  const d = await fetchScoreboard();
+  if(!d) return;
+  let sym='';
+  (d.symbols||[]).forEach(s=>{
+    const wr=s.total>0?Math.round(s.wins/s.total*100):0;
+    sym+=`\n  ${s.symbol}: W${s.wins} L${s.losses} WR${wr}%`;
+  });
+  const msg=`DAILY REPORT\n\nWins: ${d.wins}  Losses: ${d.losses}\nWin Rate: ${d.win_rate}%\nRunning: ${d.running}${sym}`;
+  showModal('Daily Report',`<pre style="font-size:11px;color:var(--txt);line-height:1.8;white-space:pre-wrap">${msg}</pre>`);
+}
+
+async function clearOpenSignals(){
+  try{
+    await fetch(API+'/open_signals/clear',{method:'POST'});
+    toast('Open signals cleared','warn');
+    fetchFeed();
+  }catch(e){ toast('Server offline','err'); }
+}
+
+function setInterval_(n){
+  scanInterval=n;
+  ['1','5','15','60'].forEach(x=>{
+    const b=document.getElementById('i'+x);
+    if(b) b.className='btn'+(parseInt(x)===n?' p':'');
+  });
+  toast('Interval set to '+n+' min');
+}
+
+// ── signal detail modal ────────────────────────
+function showSignalDetail(sym){
+  const sig = latestSignals[sym];
+  if(sig) showSignalDetailData(sig);
+  else toast('No signal data for '+sym,'warn');
+}
+
+function showSignalDetailData(sig){
+  const rr = sig.sl && sig.tp && sig.entry
+    ? Math.abs(sig.tp-sig.entry)/Math.max(Math.abs(sig.entry-sig.sl),0.00001)
+    : 0;
+  const rows = [
+    ['Direction', sig.signal, sig.signal==='BUY'?'color:var(--acc)':sig.signal==='SELL'?'color:var(--acc3)':''],
+    ['Entry',  sig.entry,''],['Take Profit', sig.tp,'color:var(--acc)'],
+    ['Stop Loss', sig.sl,'color:var(--acc3)'],
+    ['R/R', rr.toFixed(2),''],['Probability', sig.probability+'%',''],
+    ['Regime', sig.regime||'—',''],['Killzone', sig.killzone||'—',''],
+    ['Trend', sig.trend||'—',''],['MTF', sig.mtf_confirmation||'—',''],
+    ['Structure', sig.structure||'—',''],['FVG', sig.fvg||'—',''],
+    ['Status', (sig.status||sig.result||'—').toUpperCase(), sig.result==='WIN'?'color:var(--acc)':sig.result==='LOSS'?'color:var(--acc3)':''],
+  ];
+  const html = rows.map(([k,v,s])=>
+    `<div class="pr"><span class="pk">${k}</span><span class="pv" style="${s}">${v||'—'}</span></div>`
+  ).join('');
+  showModal(`Signal: ${sig.symbol}`, html);
+}
+
+// ── modal ─────────────────────────────────────
+function showModal(title, html){
+  document.getElementById('mtitle').textContent=title;
+  document.getElementById('mbody').innerHTML=html;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+
+// ── refresh all ───────────────────────────────
+async function refreshAll(){
+  await Promise.all([fetchStatus(), fetchScoreboard(), fetchFeed(), fetchLog()]);
+  updateRegimeUI();
+}
+
+// ── init ──────────────────────────────────────
+connectWS();
+loadFilters();
+refreshAll();
+setInterval(refreshAll, 10000);   // poll every 10 s as fallback
+</script>
+</body>
+</html>
