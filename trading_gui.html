@@ -338,8 +338,12 @@ html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Courier
 
 <script>
 // ─────────────────────────────────────────────
-const API   = "http://127.0.0.1:5000/api";
-const WS_URL = "ws://127.0.0.1:5000/ws";
+const API = "/api";
+
+const WS_URL =
+  (window.location.protocol === "https:" ? "wss://" : "ws://") +
+  window.location.host +
+  "/ws";
 // Served via Flask — no CORS issues
 let ws, scanInterval = 5;
 let latestSignals = {};   // sym → last signal row
