@@ -1,0 +1,10 @@
+flask
+flask-cors
+flask-sock
+pandas
+numpy
+pandas-ta
+requests
+feedparser
+groq
+gunicorn
